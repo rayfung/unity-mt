@@ -1,0 +1,3 @@
+*.o
+*.so
+/src/libmt/test_mt
