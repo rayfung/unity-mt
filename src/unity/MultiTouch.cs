@@ -23,9 +23,17 @@ namespace Lapin
             public float y;
         }
 
+        public enum TouchPhase
+        {
+            Began,
+            Update,
+            Ended,
+        }
+
         public struct TouchData
         {
             public int id;
+            public TouchPhase phase;
             public Vector2 beginPosition;
             public Vector2 currentPosition;
         }
@@ -35,6 +43,7 @@ namespace Lapin
 
         private IntPtr m_Context;
         private Dictionary<int, TouchData> m_Touches = new Dictionary<int, TouchData>();
+        private List<TouchData> m_TempTouchList = new List<TouchData>();
 
         private void Awake()
         {
@@ -63,6 +72,26 @@ namespace Lapin
 
         private void Update()
         {
+            if (m_Touches.Count > 0)
+            {
+                m_TempTouchList.Clear();
+                m_TempTouchList.AddRange(m_Touches.Values);
+
+                foreach (var touch in m_TempTouchList)
+                {
+                    if (touch.phase == TouchPhase.Began)
+                    {
+                        var copy = touch;
+                        copy.phase = TouchPhase.Update;
+                        m_Touches[copy.id] = copy;
+                    }
+                    else if (touch.phase == TouchPhase.Ended)
+                    {
+                        m_Touches.Remove(touch.id);
+                    }
+                }
+            }
+
             float h = Screen.height;
             PrepareTouch(m_Context);
 
@@ -78,6 +107,7 @@ namespace Lapin
                 {
                     var data = new TouchData();
                     data.id = touch.id;
+                    data.phase = TouchPhase.Began;
                     data.beginPosition = data.currentPosition = new Vector2(touch.x, h - touch.y);
                     m_Touches[touch.id] = data;
                 }
@@ -91,7 +121,11 @@ namespace Lapin
                 }
                 else if (touch.type == TouchEvent.End)
                 {
-                    m_Touches.Remove(touch.id);
+                    if (m_Touches.TryGetValue(touch.id, out var data))
+                    {
+                        data.phase = TouchPhase.Ended;
+                        m_Touches[touch.id] = data;
+                    }
                 }
             }
         }
