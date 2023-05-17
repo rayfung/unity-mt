@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "libmt.h"
 
@@ -47,10 +49,37 @@ int find_touch_device(mt_context *ctx, int *id_return)
 	*/
 }
 
+pid_t get_window_pid(Display *display, Window window)
+{
+	Atom pidAtom = XInternAtom(display, "_NET_WM_PID", True);
+	if (None == pidAtom)
+	{
+		return 0;
+	}
+
+	pid_t pid = 0;
+	Atom type;
+	int format;
+	unsigned long n, after;
+	unsigned char *data = NULL;
+	if (Success == XGetWindowProperty(display, window, pidAtom, 0, 64, False, AnyPropertyType,
+				&type, &format, &n, &after, &data))
+	{
+		// _NET_WM_PID is a 32-bit integer
+		if (format == 32 && n == 1 && after == 0)
+		{
+			pid = *(int32_t*)data;
+		}
+
+		XFree(data);
+	}
+
+	return pid;
+}
+
 int find_my_window(mt_context *ctx, Window *my_window)
 {
-	// TODO: Find my window by current process id
-
+	pid_t my_pid = getpid();
 	int found = 0;
 	Window root = DefaultRootWindow(ctx->display);
 
@@ -61,12 +90,12 @@ int find_my_window(mt_context *ctx, Window *my_window)
 	for (unsigned int i = 0; i < cnt; ++i)
 	{
 		Window win = children[i];
-		fprintf(stderr, "MT: Found window 0x%lx\n", (unsigned long)win);
-
-		if (!found)
+		if (get_window_pid(ctx->display, win) == my_pid)
 		{
 			*my_window = win;
 			found = 1;
+			fprintf(stderr, "MT: Found window 0x%lx\n", (unsigned long)win);
+			break;
 		}
 	}
 
