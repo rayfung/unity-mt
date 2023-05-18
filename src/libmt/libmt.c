@@ -212,8 +212,8 @@ mt_event mt_get_next(void *_ctx)
 			}
 
 			result.id = de->detail;
-			result.x = de->root_x;
-			result.y = de->root_y;
+			result.x = de->event_x;
+			result.y = de->event_y;
 			dev_id = de->deviceid;
 			src_id = de->sourceid;
 		}
