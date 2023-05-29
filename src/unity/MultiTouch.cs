@@ -39,11 +39,12 @@ namespace Lapin
         }
 
         private static MultiTouch s_Instance = null;
-        private static readonly IReadOnlyCollection<TouchData> s_Empty = new List<TouchData>();
+        private static readonly List<TouchData> s_Empty = new List<TouchData>();
 
         private IntPtr m_Context;
         private Dictionary<int, TouchData> m_Touches = new Dictionary<int, TouchData>();
         private List<TouchData> m_TempTouchList = new List<TouchData>();
+        private List<TouchData> m_ExposedTouchList = new List<TouchData>();
 
         private void Awake()
         {
@@ -100,6 +101,12 @@ namespace Lapin
                 var touch = GetNextTouchEvent(m_Context);
                 if (touch.type == TouchEvent.None)
                 {
+                    m_ExposedTouchList.Clear();
+                    foreach (var data in m_Touches.Values)
+                    {
+                        m_ExposedTouchList.Add(data);
+                    }
+
                     return;
                 }
 
@@ -130,9 +137,9 @@ namespace Lapin
             }
         }
 
-        public static IReadOnlyCollection<TouchData> GetTouches()
+        public static List<TouchData> GetTouches()
         {
-            return s_Instance is null ? s_Empty : s_Instance.m_Touches.Values;
+            return s_Instance is null ? s_Empty : s_Instance.m_ExposedTouchList;
         }
 
 #if UNITY_STANDALONE_LINUX && !UNITY_EDITOR
